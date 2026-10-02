@@ -149,6 +149,10 @@ export class DocumentStore {
       }
     }
 
+    // Sequence numbers continue from the durable manifest so replayed WAL
+    // records and writes after reopen stay strictly increasing across
+    // restarts instead of restarting at 1.
+    this.bufferSequence = this.manifest.lastSequence;
     const records = WriteAheadLog.readRecords(this.#walPath(), { repairTornTail: true });
     for (const record of records) {
       if (record.sequence <= this.manifest.lastSequence) continue;

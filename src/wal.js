@@ -39,6 +39,15 @@ export class WriteAheadLog {
     }
     renameSync(tmpPath, this.path);
     fsyncDirectory(dirname(this.path));
+    // The rename swapped the file underneath us: this.fd still names the
+    // previous, now unlinked inode, and appending to it would fsync bytes no
+    // directory entry can ever reach. Rebind to the replacement before the
+    // next append so acknowledged writes stay on the visible log.
+    const nextFd = openSync(this.path, 'a');
+    if (this.fd !== undefined) {
+      closeSync(this.fd);
+    }
+    this.fd = nextFd;
   }
 
   close() {
